@@ -1,4 +1,4 @@
-#include "iex_messages.h"
+    #include "iex_messages.h"
 #include <algorithm>
 
 /// \brief Templated function for dereferencing and casting a uint8_t pointer to a desired type.
@@ -72,7 +72,7 @@ void IEXTPHeader::Print() const {
   IEX_LOG("channel_id        : " << channel_id);
   IEX_LOG("session_id        : " << session_id);
   IEX_LOG("payload_len       : " << payload_len);
-  IEX_LOG("message count     : " << message_count);
+  IEX_LOG("message CountMessagesPerSymbol     : " << message_count);
   IEX_LOG("stream offset     : " << stream_offset);
   IEX_LOG("first message     : " << first_msg_sq_num);
   IEX_LOG("send time         : " << send_time << std::endl);

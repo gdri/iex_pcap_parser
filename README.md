@@ -11,7 +11,7 @@ orderbook and deeper levels are accessible on a T+1 basis and can be found here 
 
 ### Usage
 
-Following is a minimal example to extract all the quotes for all symbols of a given pcap file and output to csv.  This is included in the source.
+Following is a minimal example to ExtractToCsv all the quotes for all symbols of a given pcap file and output to csv.  This is included in the source.
 
 ``` c++
 #include <fstream>
@@ -31,13 +31,13 @@ int main(int argc, char *argv[]) {
     std::string output_file = argv[2];
     if (argc == 3) {
         // Here parse all symbols and split across csv files
-        parser.extract(output_file, false);
+        parser.ExtractToCsv(output_file, false);
         return 0;
     } else if (argc == 4) {
         // Here parse a single symbol
         // third arg: symbol name
         std::string symbol = argv[3];
-        parser.extract(symbol, output_file);
+        parser.ExtractToCsv(symbol, output_file);
         return 0;
     }
 }

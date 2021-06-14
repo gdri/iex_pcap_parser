@@ -8,13 +8,10 @@
 
 
 IEXQuotesParser::IEXQuotesParser(std::string pcap_path) : pcap_path(pcap_path) {
-        unique_symbols();
+    UniqueSymbols();
 }
 
-/*
- * Get all unique symbols from quotes messages.
- */
-void IEXQuotesParser::unique_symbols() {
+void IEXQuotesParser::UniqueSymbols() {
     std::set<std::string> symbols_set;
 
     IEXDecoder decoder;
@@ -37,11 +34,7 @@ void IEXQuotesParser::unique_symbols() {
     symbols = symbols_vect;
 }
 
-/*
- * Extract quote messages to csv for a given symbol
- * Output columns: timestamp, bid_price, bid_size, ask_price, ask_size
- */
-void IEXQuotesParser::extract(std::string symbol, std::string destination_folder) {
+void IEXQuotesParser::ExtractToCsv(std::string symbol, std::string destination_folder) {
     // csv filename is same as pcap
     std::string pcap_filename = pcap_path.substr(pcap_path.rfind("/") + 1);
     std::string output_csv_filename = symbol + "_" + pcap_filename.substr(0, pcap_filename.find(".")) + ".csv";
@@ -79,13 +72,7 @@ void IEXQuotesParser::extract(std::string symbol, std::string destination_folder
     }
 }
 
-/*
- * Extract quotes for the whole collection of symbols
- * If split_symbol arg set to true then one csv file is written per symbol
- * Otherwise one whole (possibly large) csv file written for the entire stream of quotes.
- * Output columns: timestamp, (symbol), bid_price, bid_size, ask_price, ask_size
- */
-void IEXQuotesParser::extract(std::string destination_folder, bool split_symbols) {
+void IEXQuotesParser::ExtractToCsv(std::string destination_folder, bool split_symbols) {
     IEXDecoder decoder;
     if (!decoder.OpenFileForDecoding(pcap_path)) {
         std::cout << "Failed to open file '" << pcap_path << "'." << std::endl;
@@ -149,10 +136,7 @@ void IEXQuotesParser::extract(std::string destination_folder, bool split_symbols
     }
 }
 
-/*
- * Count quotes messages per unique symbols.
- */
-std::map<std::string, int> IEXQuotesParser::count() {
+std::map<std::string, int> IEXQuotesParser::CountMessagesPerSymbol() {
     std::map<std::string, int> symbol_counts;
 
     for (auto& symbol: symbols)

@@ -11,17 +11,17 @@ int main(int argc, char *argv[]) {
 
     // first arg: pcap file
     IEXQuotesParser parser{argv[1]};
-    // second arg: output csv file
-    std::string output_file = argv[2];
+    // second arg: target path for output csv
+    std::string destination_folder = argv[2];
     if (argc == 3) {
         // Here parse all symbols and split across csv files
-        parser.extract(output_file, false);
+        parser.ExtractToCsv(destination_folder, false);
         return 0;
     } else if (argc == 4) {
         // Here parse a single symbol
         // third arg: symbol name
         std::string symbol = argv[3];
-        parser.extract(symbol, output_file);
+        parser.ExtractToCsv(symbol, destination_folder);
         return 0;
     }
 }

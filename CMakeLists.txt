@@ -48,20 +48,11 @@ SET(EXT_LIBRARIES Packet++
                   Common++
                   pcap)
 
-add_library(iex_pcap "src/iex_decoder.cpp" "src/iex_messages"
-        "src/count_symbol_quotes.cpp" "src/quotes_parser.cpp")
+add_library(iex_pcap "src/iex_decoder.cpp" "src/iex_messages" "src/quotes_parser.cpp")
 
 install(TARGETS iex_pcap DESTINATION ${CMAKE_SOURCE_DIR}/lib)
 add_dependencies(iex_pcap project_pcapplusplus)
 
-add_executable(count_symbol_quotes "src/count_symbol_quotes.cpp")
 add_executable(parse_tops_quotes_to_csv "src/parse_tops_quotes_to_csv.cpp")
-add_executable(quotes_parser "src/quotes_parser.cpp")
-
-target_link_libraries(count_symbol_quotes iex_pcap ${EXT_LIBRARIES})
 target_link_libraries(parse_tops_quotes_to_csv iex_pcap ${EXT_LIBRARIES})
-target_link_libraries(quotes_parser iex_pcap ${EXT_LIBRARIES})
-
-install(TARGETS count_symbol_quotes DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 install(TARGETS parse_tops_quotes_to_csv DESTINATION ${CMAKE_SOURCE_DIR}/bin)
-install(TARGETS quotes_parser DESTINATION ${CMAKE_SOURCE_DIR}/bin)
