@@ -11,39 +11,29 @@ orderbook and deeper levels are accessible on a T+1 basis and can be found here 
 
 ### Usage
 
-Following is a minimal example to ExtractToCsv all the quotes for all symbols of a given pcap file and output to csv.  This is included in the source.
+Following is a minimal example to extract the content of a .pcap file to csv.  This is included in the source.
 
 ``` c++
-#include <fstream>
-#include "quotes_parser.h"
+#include <string>
+#include "parser.h"
+#include "storage.h"
 
 int main(int argc, char *argv[]) {
-
-    if (argc > 4)
-        return 1;
-
-    if (argc < 3)
-        return 1;
-
     // first arg: pcap file
-    IEXQuotesParser parser{argv[1]};
-    // second arg: output csv file
-    std::string output_file = argv[2];
-    if (argc == 3) {
-        // Here parse all symbols and split across csv files
-        parser.ExtractToCsv(output_file, false);
-        return 0;
-    } else if (argc == 4) {
-        // Here parse a single symbol
-        // third arg: symbol name
-        std::string symbol = argv[3];
-        parser.ExtractToCsv(symbol, output_file);
-        return 0;
-    }
+    std::string pcap_path {argv[1]};
+    // second arg: target path for output csv
+    std::string destination_folder {argv[2]};
+
+    // writing to csv format
+    IStorage* storage = new CsvStorage(destination_folder);
+
+    // parse file
+    ParsePcapFile(pcap_path, *storage);
+    return 0;
 }
+
 ```
 
 ### TODO list
 - gzip compression/decompression of csv files
 - Python bindings
-- abstract parser class to handle multiple categories of messages (not only quotes)

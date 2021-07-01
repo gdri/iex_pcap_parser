@@ -1,5 +1,7 @@
-    #include "iex_messages.h"
+#include "iex_messages.h"
 #include <algorithm>
+#include <list>
+#include <string>
 
 /// \brief Templated function for dereferencing and casting a uint8_t pointer to a desired type.
 ///
@@ -8,7 +10,7 @@
 /// \return template type T, the numeric data being requested.
 template <typename T>
 T GetNumeric(const uint8_t* data_ptr, const int offset) {
-  return *(reinterpret_cast<const T*>(&data_ptr[offset]));
+    return *(reinterpret_cast<const T*>(&data_ptr[offset]));
 }
 
 /// \brief Similar to GetNumeric, however specialized for price data.
@@ -17,7 +19,7 @@ T GetNumeric(const uint8_t* data_ptr, const int offset) {
 /// \param offset    An offset to first apply to the pointer before dereferencing.
 /// \return The price in dollars, returned as a double.
 double GetPrice(const uint8_t* data_ptr, const int offset) {
-  return *(reinterpret_cast<const int64_t*>(&data_ptr[offset])) / 10000.0;
+    return *(reinterpret_cast<const int64_t*>(&data_ptr[offset])) / 10000.0;
 }
 
 /// \brief Similar to GetNumeric, however specialized for string data.
@@ -27,13 +29,13 @@ double GetPrice(const uint8_t* data_ptr, const int offset) {
 /// \param length    Expected length of the string.
 /// \return The string data as an std::string
 std::string GetString(const uint8_t* data_ptr, const int offset, const int length) {
-  std::string ret_val = std::string((reinterpret_cast<const char*>(&data_ptr[offset])), length);
-  // Remove whitespace.
-  ret_val.erase(
-      std::find_if(ret_val.rbegin(), ret_val.rend(), [](int ch) { return !std::isspace(ch); })
-          .base(),
-      ret_val.end());
-  return ret_val;
+    std::string ret_val = std::string((reinterpret_cast<const char*>(&data_ptr[offset])), length);
+    // Remove whitespace.
+    ret_val.erase(
+            std::find_if(ret_val.rbegin(), ret_val.rend(), [](int ch) { return !std::isspace(ch); })
+                    .base(),
+            ret_val.end());
+    return ret_val;
 }
 
 /// \brief Validate the timestamp using a sensible range.
@@ -42,290 +44,544 @@ std::string GetString(const uint8_t* data_ptr, const int offset, const int lengt
 /// \param timestamp  Input timestamp to validate.
 /// \return bool True if timestamp is valid, false otherwise.
 bool ValidateTimestamp(const int64_t timestamp) {
-  return (timestamp > 1382659200000000000) && (timestamp < 4102444800000000000);
+    return (timestamp > 1382659200000000000) && (timestamp < 4102444800000000000);
 }
 
 std::string IEXMessageBase::OutputToJson() const { return "Not implemented"; }
 
 bool IEXTPHeader::Decode(const uint8_t* data_ptr) {
-  version = GetNumeric<uint8_t>(data_ptr, 0);
-  protocol_id = GetNumeric<uint16_t>(data_ptr, 2);
-  channel_id = GetNumeric<uint32_t>(data_ptr, 4);
-  session_id = GetNumeric<uint32_t>(data_ptr, 8);
-  payload_len = GetNumeric<uint16_t>(data_ptr, 12);
-  message_count = GetNumeric<uint16_t>(data_ptr, 14);
-  stream_offset = GetNumeric<uint64_t>(data_ptr, 16);
-  first_msg_sq_num = GetNumeric<uint64_t>(data_ptr, 24);
-  send_time = GetNumeric<uint64_t>(data_ptr, 32);
+    version = GetNumeric<uint8_t>(data_ptr, 0);
+    protocol_id = GetNumeric<uint16_t>(data_ptr, 2);
+    channel_id = GetNumeric<uint32_t>(data_ptr, 4);
+    session_id = GetNumeric<uint32_t>(data_ptr, 8);
+    payload_len = GetNumeric<uint16_t>(data_ptr, 12);
+    message_count = GetNumeric<uint16_t>(data_ptr, 14);
+    stream_offset = GetNumeric<uint64_t>(data_ptr, 16);
+    first_msg_sq_num = GetNumeric<uint64_t>(data_ptr, 24);
+    send_time = GetNumeric<uint64_t>(data_ptr, 32);
 
-  if (version != 1) {
-    IEX_LOG("Error: The version of the transport specification has changed. Decoding may not work");
-    return false;
-  } else {
-    return true;
-  }
+    if (version != 1) {
+        IEX_LOG("Error: The version of the transport specification has changed. Decoding may not work");
+        return false;
+    } else {
+        return true;
+    }
 }
 
 void IEXTPHeader::Print() const {
-  IEX_LOG("ver               : " << int(version));
-  IEX_LOG("id                : " << protocol_id);
-  IEX_LOG("channel_id        : " << channel_id);
-  IEX_LOG("session_id        : " << session_id);
-  IEX_LOG("payload_len       : " << payload_len);
-  IEX_LOG("message CountMessagesPerSymbol     : " << message_count);
-  IEX_LOG("stream offset     : " << stream_offset);
-  IEX_LOG("first message     : " << first_msg_sq_num);
-  IEX_LOG("send time         : " << send_time << std::endl);
+    IEX_LOG("ver               : " << int(version));
+    IEX_LOG("id                : " << protocol_id);
+    IEX_LOG("channel_id        : " << channel_id);
+    IEX_LOG("session_id        : " << session_id);
+    IEX_LOG("payload_len       : " << payload_len);
+    IEX_LOG("message CountMessagesPerSymbol     : " << message_count);
+    IEX_LOG("stream offset     : " << stream_offset);
+    IEX_LOG("first message     : " << first_msg_sq_num);
+    IEX_LOG("send time         : " << send_time << std::endl);
+}
+
+std::list<std::string> IEXTPHeader::Header() const {
+    return std::list<std::string> {
+        "ver",
+        "id",
+        "channel_id",
+        "session_id",
+        "payload_len",
+        "message CountMessagesPerSymbol",
+        "stream offset",
+        "first message",
+        "send time"
+    };
+}
+
+std::list<std::string> IEXTPHeader::ToList() const {
+    return std::list<std::string> {
+        std::to_string(version),
+        std::to_string(protocol_id),
+        std::to_string(channel_id),
+        std::to_string(session_id),
+        std::to_string(payload_len),
+        std::to_string(message_count),
+        std::to_string(stream_offset),
+        std::to_string(first_msg_sq_num),
+        std::to_string(send_time)
+    };
 }
 
 bool SystemEventMessage::Decode(const uint8_t* data_ptr) {
-  system_event = static_cast<SystemEventMessage::Code>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    system_event = static_cast<SystemEventMessage::Code>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void SystemEventMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("System event      : " << static_cast<char>(system_event));
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("System event      : " << static_cast<char>(system_event));
+}
+
+std::list<std::string> SystemEventMessage::Header() const {
+    return std::list<std::string> {
+            "Timestamp",
+            "System event"
+    };
+}
+
+std::list<std::string> SystemEventMessage::ToList() const {
+    return std::list<std::string> {
+            std::to_string(timestamp),
+            std::to_string(static_cast<char>(system_event))
+    };
 }
 
 bool SecurityDirectoryMessage::Decode(const uint8_t* data_ptr) {
-  flags = GetNumeric<uint8_t>(data_ptr, 1);
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  round_lot_size = GetNumeric<uint32_t>(data_ptr, 18);
-  adjusted_POC_price = GetPrice(data_ptr, 22);
-  LULD_tier = static_cast<LULDTier>(GetNumeric<uint8_t>(data_ptr, 30));
+    flags = GetNumeric<uint8_t>(data_ptr, 1);
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    round_lot_size = GetNumeric<uint32_t>(data_ptr, 18);
+    adjusted_POC_price = GetPrice(data_ptr, 22);
+    LULD_tier = static_cast<LULDTier>(GetNumeric<uint8_t>(data_ptr, 30));
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void SecurityDirectoryMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Flag              : " << PRINTHEX(flags));
-  IEX_LOG("Round lot size    : " << round_lot_size);
-  IEX_LOG("Adjust POC price  : " << adjusted_POC_price);
-  IEX_LOG("LULD Tier         : " << static_cast<int>(LULD_tier));
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Flag              : " << PRINTHEX(flags));
+    IEX_LOG("Round lot size    : " << round_lot_size);
+    IEX_LOG("Adjust POC price  : " << adjusted_POC_price);
+    IEX_LOG("LULD Tier         : " << static_cast<int>(LULD_tier));
+}
+
+std::list<std::string> SecurityDirectoryMessage::Header() const {
+    return std::list<std::string> {
+            "Timestamp",
+            "Symbol",
+            "Flag",
+            "Round lot size",
+            "Adjust POC price",
+            "LULD Tier"
+    };
+}
+
+std::list<std::string> SecurityDirectoryMessage::ToList() const {
+    return std::list<std::string> {
+            std::to_string(timestamp),
+            symbol,
+            PRINTHEX(flags),
+            std::to_string(round_lot_size),
+            std::to_string(adjusted_POC_price),
+            std::to_string(static_cast<int>(LULD_tier))
+    };
 }
 
 bool TradingStatusMessage::Decode(const uint8_t* data_ptr) {
-  trading_status = static_cast<TradingStatusMessage::Status>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  reason = GetString(data_ptr, 18, 4);
+    trading_status = static_cast<TradingStatusMessage::Status>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    reason = GetString(data_ptr, 18, 4);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void TradingStatusMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Trading status    : " << static_cast<char>(trading_status));
-  IEX_LOG("Reason            : " << reason);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Trading status    : " << static_cast<char>(trading_status));
+    IEX_LOG("Reason            : " << reason);
+}
+
+std::list<std::string> TradingStatusMessage::Header() const {
+    return std::list<std::string> {
+            "Timestamp",
+            "Symbol",
+            "Trading status",
+            "Reason"
+    };
+}
+
+std::list<std::string> TradingStatusMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        std::to_string(static_cast<char>(trading_status)),
+        reason
+    };
 }
 
 bool OperationalHaltStatusMessage::Decode(const uint8_t* data_ptr) {
-  operational_halt_status =
-      static_cast<OperationalHaltStatusMessage::Status>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
+    operational_halt_status =
+            static_cast<OperationalHaltStatusMessage::Status>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void OperationalHaltStatusMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Operational halt  : " << static_cast<char>(operational_halt_status));
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Operational halt  : " << static_cast<char>(operational_halt_status));
+}
+
+std::list<std::string> OperationalHaltStatusMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "Operational halt"
+    };
+}
+
+std::list<std::string> OperationalHaltStatusMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        std::to_string(static_cast<char>(operational_halt_status))
+    };
 }
 
 bool ShortSalePriceTestStatusMessage::Decode(const uint8_t* data_ptr) {
-  short_sale_test_in_effect = static_cast<bool>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  detail = static_cast<Detail>(GetNumeric<uint8_t>(data_ptr, 18));
+    short_sale_test_in_effect = static_cast<bool>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    detail = static_cast<Detail>(GetNumeric<uint8_t>(data_ptr, 18));
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void ShortSalePriceTestStatusMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("In effect         : " << short_sale_test_in_effect);
-  IEX_LOG("Detail            : " << static_cast<char>(detail));
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("In effect         : " << short_sale_test_in_effect);
+    IEX_LOG("Detail            : " << static_cast<char>(detail));
 }
 
-bool QuoteUpdateMessage::Decode(const uint8_t* data_ptr) {
-  flags = GetNumeric<uint8_t>(data_ptr, 1);
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  bid_size = GetNumeric<uint32_t>(data_ptr, 18);
-  bid_price = GetPrice(data_ptr, 22);
-  ask_size = GetNumeric<uint32_t>(data_ptr, 38);
-  ask_price = GetPrice(data_ptr, 30);
+std::list<std::string> ShortSalePriceTestStatusMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "In effect",
+        "Detail"
+    };
+}
 
-  return ValidateTimestamp(timestamp);
+std::list<std::string> ShortSalePriceTestStatusMessage::ToList() const {
+    return std::list<std::string> {
+            std::to_string(timestamp),
+            symbol,
+            std::to_string(short_sale_test_in_effect),
+            std::to_string(static_cast<char>(detail))
+    };
+}
+
+
+bool QuoteUpdateMessage::Decode(const uint8_t* data_ptr) {
+    flags = GetNumeric<uint8_t>(data_ptr, 1);
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    bid_size = GetNumeric<uint32_t>(data_ptr, 18);
+    bid_price = GetPrice(data_ptr, 22);
+    ask_size = GetNumeric<uint32_t>(data_ptr, 38);
+    ask_price = GetPrice(data_ptr, 30);
+
+    return ValidateTimestamp(timestamp);
 }
 
 void QuoteUpdateMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Flag              : " << PRINTHEX(flags));
-  IEX_LOG("Bid size          : " << bid_size);
-  IEX_LOG("Bid price         : " << bid_price);
-  IEX_LOG("Ask size          : " << ask_size);
-  IEX_LOG("Ask price         : " << ask_price);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Flag              : " << PRINTHEX(flags));
+    IEX_LOG("Bid size          : " << bid_size);
+    IEX_LOG("Bid price         : " << bid_price);
+    IEX_LOG("Ask size          : " << ask_size);
+    IEX_LOG("Ask price         : " << ask_price);
+}
+
+std::list<std::string> QuoteUpdateMessage::Header() const {
+    return std::list<std::string> {
+            "Timestamp",
+            "Symbol",
+            "Flag",
+            "Bid size",
+            "Bid price",
+            "Ask size",
+            "Ask price"
+    };
+}
+
+std::list<std::string> QuoteUpdateMessage::ToList() const {
+    return std::list<std::string> {
+            std::to_string(timestamp),
+            symbol,
+            PRINTHEX(flags),
+            std::to_string(bid_size),
+            std::to_string(bid_price),
+            std::to_string(ask_size),
+            std::to_string(ask_price)
+    };
 }
 
 bool TradeReportMessage::Decode(const uint8_t* data_ptr) {
-  flags = GetNumeric<uint8_t>(data_ptr, 1);
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  size = GetNumeric<uint32_t>(data_ptr, 18);
-  price = GetPrice(data_ptr, 22);
-  trade_id = GetNumeric<uint64_t>(data_ptr, 30);
+    flags = GetNumeric<uint8_t>(data_ptr, 1);
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    size = GetNumeric<uint32_t>(data_ptr, 18);
+    price = GetPrice(data_ptr, 22);
+    trade_id = GetNumeric<uint64_t>(data_ptr, 30);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void TradeReportMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Flag              : " << PRINTHEX(flags));
-  IEX_LOG("Size              : " << size);
-  IEX_LOG("Price             : " << price);
-  IEX_LOG("Trade id          : " << trade_id);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Flag              : " << PRINTHEX(flags));
+    IEX_LOG("Size              : " << size);
+    IEX_LOG("Price             : " << price);
+    IEX_LOG("Trade id          : " << trade_id);
+}
+
+std::list<std::string> TradeReportMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "Flag",
+        "Size",
+        "Price",
+        "Trade id"
+    };
+}
+
+std::list<std::string> TradeReportMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        PRINTHEX(flags),
+        std::to_string(size),
+        std::to_string(price),
+        std::to_string(trade_id)
+    };
 }
 
 bool OfficialPriceMessage::Decode(const uint8_t* data_ptr) {
-  price_type = static_cast<PriceType>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  price = GetPrice(data_ptr, 18);
-
-  return ValidateTimestamp(timestamp);
+    price_type = static_cast<PriceType>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    price = GetPrice(data_ptr, 18);
+    return ValidateTimestamp(timestamp);
 }
 
 void OfficialPriceMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Price type        : " << static_cast<char>(price_type));
-  IEX_LOG("Official price    : " << price);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Price type        : " << static_cast<char>(price_type));
+    IEX_LOG("Official price    : " << price);
+}
+
+std::list<std::string> OfficialPriceMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "Price type",
+        "Official price"
+    };
+}
+
+std::list<std::string> OfficialPriceMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        std::to_string(static_cast<char>(price_type)),
+        std::to_string(price)
+    };
 }
 
 bool AuctionInformationMessage::Decode(const uint8_t* data_ptr) {
-  auction_type = static_cast<AuctionType>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  paired_shares = GetNumeric<uint32_t>(data_ptr, 18);
-  reference_price = GetPrice(data_ptr, 22);
-  indicative_clearing_price = GetPrice(data_ptr, 30);
-  imbalance_shares = GetNumeric<uint32_t>(data_ptr, 38);
-  imbalance_side =
-      static_cast<AuctionInformationMessage::ImbalanceSide>(GetNumeric<uint8_t>(data_ptr, 42));
-  extension_number = GetNumeric<uint8_t>(data_ptr, 43);
-  scheduled_auction_time = GetNumeric<uint32_t>(data_ptr, 44);
-  auction_book_clearing_price = GetPrice(data_ptr, 48);
-  collar_reference_price = GetPrice(data_ptr, 56);
-  lower_auction_collar = GetPrice(data_ptr, 64);
-  upper_auction_collar = GetPrice(data_ptr, 72);
+    auction_type = static_cast<AuctionType>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    paired_shares = GetNumeric<uint32_t>(data_ptr, 18);
+    reference_price = GetPrice(data_ptr, 22);
+    indicative_clearing_price = GetPrice(data_ptr, 30);
+    imbalance_shares = GetNumeric<uint32_t>(data_ptr, 38);
+    imbalance_side =
+            static_cast<AuctionInformationMessage::ImbalanceSide>(GetNumeric<uint8_t>(data_ptr, 42));
+    extension_number = GetNumeric<uint8_t>(data_ptr, 43);
+    scheduled_auction_time = GetNumeric<uint32_t>(data_ptr, 44);
+    auction_book_clearing_price = GetPrice(data_ptr, 48);
+    collar_reference_price = GetPrice(data_ptr, 56);
+    lower_auction_collar = GetPrice(data_ptr, 64);
+    upper_auction_collar = GetPrice(data_ptr, 72);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void AuctionInformationMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Auction type      : " << static_cast<char>(auction_type));
-  IEX_LOG("Paired shares     : " << paired_shares);
-  IEX_LOG("Reference price   : " << reference_price);
-  IEX_LOG("Indicative clear  : " << indicative_clearing_price);
-  IEX_LOG("Imbalance shares  : " << imbalance_shares);
-  IEX_LOG("Imbalance side    : " << static_cast<char>(imbalance_side));
-  IEX_LOG("Extension number  : " << extension_number);
-  IEX_LOG("Schd Auction time : " << scheduled_auction_time);
-  IEX_LOG("Book clear price  : " << auction_book_clearing_price);
-  IEX_LOG("Collar ref price  : " << collar_reference_price);
-  IEX_LOG("Lwr Auction collar: " << lower_auction_collar);
-  IEX_LOG("Upr Auction collar: " << upper_auction_collar);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Auction type      : " << static_cast<char>(auction_type));
+    IEX_LOG("Paired shares     : " << paired_shares);
+    IEX_LOG("Reference price   : " << reference_price);
+    IEX_LOG("Indicative clear  : " << indicative_clearing_price);
+    IEX_LOG("Imbalance shares  : " << imbalance_shares);
+    IEX_LOG("Imbalance side    : " << static_cast<char>(imbalance_side));
+    IEX_LOG("Extension number  : " << extension_number);
+    IEX_LOG("Schd Auction time : " << scheduled_auction_time);
+    IEX_LOG("Book clear price  : " << auction_book_clearing_price);
+    IEX_LOG("Collar ref price  : " << collar_reference_price);
+    IEX_LOG("Lwr Auction collar: " << lower_auction_collar);
+    IEX_LOG("Upr Auction collar: " << upper_auction_collar);
+}
+
+std::list<std::string> AuctionInformationMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "Auction type",
+        "Paired shares",
+        "Reference price",
+        "Indicative clear",
+        "Imbalance shares",
+        "Imbalance side",
+        "Extension number",
+        "Schd Auction time",
+        "Book clear price",
+        "Collar ref price",
+        "Lwr Auction collar",
+        "Upr Auction collar"
+    };
+}
+
+std::list<std::string> AuctionInformationMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        std::to_string(static_cast<char>(auction_type)),
+        std::to_string(paired_shares),
+        std::to_string(reference_price),
+        std::to_string(indicative_clearing_price),
+        std::to_string(imbalance_shares),
+        std::to_string(static_cast<char>(imbalance_side)),
+        std::to_string(extension_number),
+        std::to_string(scheduled_auction_time),
+        std::to_string(auction_book_clearing_price),
+        std::to_string(collar_reference_price),
+        std::to_string(lower_auction_collar),
+        std::to_string(upper_auction_collar)
+    };
 }
 
 bool PriceLevelUpdateMessage::Decode(const uint8_t* data_ptr) {
-  flags = GetNumeric<uint8_t>(data_ptr, 1);
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
-  size = GetNumeric<uint32_t>(data_ptr, 18);
-  price = GetPrice(data_ptr, 22);
+    flags = GetNumeric<uint8_t>(data_ptr, 1);
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
+    size = GetNumeric<uint32_t>(data_ptr, 18);
+    price = GetPrice(data_ptr, 22);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void PriceLevelUpdateMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("Flag              : " << PRINTHEX(flags));
-  IEX_LOG("Size              : " << size);
-  IEX_LOG("Price             : " << price);
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("Flag              : " << PRINTHEX(flags));
+    IEX_LOG("Size              : " << size);
+    IEX_LOG("Price             : " << price);
+}
+
+std::list<std::string> PriceLevelUpdateMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "Flag",
+        "Size",
+        "Price"
+    };
+}
+
+std::list<std::string> PriceLevelUpdateMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        PRINTHEX(flags),
+        std::to_string(size),
+        std::to_string(price)
+    };
 }
 
 bool SecurityEventMessage::Decode(const uint8_t* data_ptr) {
-  security_event =
-      static_cast<SecurityEventMessage::SecurityMessageType>(GetNumeric<uint8_t>(data_ptr, 1));
-  timestamp = GetNumeric<uint64_t>(data_ptr, 2);
-  symbol = GetString(data_ptr, 10, 8);
+    security_event =
+            static_cast<SecurityEventMessage::SecurityMessageType>(GetNumeric<uint8_t>(data_ptr, 1));
+    timestamp = GetNumeric<uint64_t>(data_ptr, 2);
+    symbol = GetString(data_ptr, 10, 8);
 
-  return ValidateTimestamp(timestamp);
+    return ValidateTimestamp(timestamp);
 }
 
 void SecurityEventMessage::Print() const {
-  IEX_LOG("Message type      : " << MessageTypeToString(message_type));
-  IEX_LOG("Timestamp         : " << timestamp);
-  IEX_LOG("Symbol            : " << symbol);
-  IEX_LOG("SecurityEvent     : " << static_cast<char>(security_event));
+    IEX_LOG("Message type      : " << MessageTypeToString(message_type));
+    IEX_LOG("Timestamp         : " << timestamp);
+    IEX_LOG("Symbol            : " << symbol);
+    IEX_LOG("SecurityEvent     : " << static_cast<char>(security_event));
+}
+
+std::list<std::string> SecurityEventMessage::Header() const {
+    return std::list<std::string> {
+        "Timestamp",
+        "Symbol",
+        "SecurityEvent"
+    };
+}
+
+std::list<std::string> SecurityEventMessage::ToList() const {
+    return std::list<std::string> {
+        std::to_string(timestamp),
+        symbol,
+        std::to_string(static_cast<char>(security_event))
+    };
 }
 
 std::unique_ptr<IEXMessageBase> IEXMessageFactory(const uint8_t* msg_data_ptr) {
-  int msg_type = *msg_data_ptr;
-  auto msg_enum = static_cast<MessageType>(msg_type);
-  switch (msg_enum) {
-    case MessageType::QuoteUpdate:
-      return std::unique_ptr<IEXMessageBase>(new QuoteUpdateMessage());
-    case MessageType::TradingStatus:
-      return std::unique_ptr<IEXMessageBase>(new TradingStatusMessage());
-    case MessageType::SystemEvent:
-      return std::unique_ptr<IEXMessageBase>(new SystemEventMessage());
-    case MessageType::SecurityDirectory:
-      return std::unique_ptr<IEXMessageBase>(new SecurityDirectoryMessage());
-    case MessageType::OperationalHaltStatus:
-      return std::unique_ptr<IEXMessageBase>(new OperationalHaltStatusMessage());
-    case MessageType::ShortSalePriceTestStatus:
-      return std::unique_ptr<IEXMessageBase>(new ShortSalePriceTestStatusMessage());
-    case MessageType::TradeReport:
-    case MessageType::TradeBreak:
-      return std::unique_ptr<IEXMessageBase>(new TradeReportMessage(msg_enum));
-    case MessageType::OfficialPrice:
-      return std::unique_ptr<IEXMessageBase>(new OfficialPriceMessage());
-    case MessageType::AuctionInformation:
-      return std::unique_ptr<IEXMessageBase>(new AuctionInformationMessage());
-    case MessageType::PriceLevelUpdateBuy:
-    case MessageType::PriceLevelUpdateSell:
-      return std::unique_ptr<IEXMessageBase>(new PriceLevelUpdateMessage(msg_enum));
-    case MessageType::SecurityEvent:
-      return std::unique_ptr<IEXMessageBase>(new SecurityEventMessage(msg_enum));
-    default:
-      return NULL;
-  }
-  return NULL;
+    int msg_type = *msg_data_ptr;
+    auto msg_enum = static_cast<MessageType>(msg_type);
+    switch (msg_enum) {
+        case MessageType::QuoteUpdate:
+            return std::unique_ptr<IEXMessageBase>(new QuoteUpdateMessage());
+        case MessageType::TradingStatus:
+            return std::unique_ptr<IEXMessageBase>(new TradingStatusMessage());
+        case MessageType::SystemEvent:
+            return std::unique_ptr<IEXMessageBase>(new SystemEventMessage());
+        case MessageType::SecurityDirectory:
+            return std::unique_ptr<IEXMessageBase>(new SecurityDirectoryMessage());
+        case MessageType::OperationalHaltStatus:
+            return std::unique_ptr<IEXMessageBase>(new OperationalHaltStatusMessage());
+        case MessageType::ShortSalePriceTestStatus:
+            return std::unique_ptr<IEXMessageBase>(new ShortSalePriceTestStatusMessage());
+        case MessageType::TradeReport:
+        case MessageType::TradeBreak:
+            return std::unique_ptr<IEXMessageBase>(new TradeReportMessage(msg_enum));
+        case MessageType::OfficialPrice:
+            return std::unique_ptr<IEXMessageBase>(new OfficialPriceMessage());
+        case MessageType::AuctionInformation:
+            return std::unique_ptr<IEXMessageBase>(new AuctionInformationMessage());
+        case MessageType::PriceLevelUpdateBuy:
+        case MessageType::PriceLevelUpdateSell:
+            return std::unique_ptr<IEXMessageBase>(new PriceLevelUpdateMessage(msg_enum));
+        case MessageType::SecurityEvent:
+            return std::unique_ptr<IEXMessageBase>(new SecurityEventMessage(msg_enum));
+        default:
+            return NULL;
+    }
+    return NULL;
 }
