@@ -13,5 +13,6 @@ int main(int argc, char *argv[]) {
 
     // parse file
     ParsePcapFile(pcap_path, *storage);
+    delete storage;
     return 0;
 }
